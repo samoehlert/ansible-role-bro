@@ -1,12 +1,12 @@
 # Ansible Role: Bro IDS
 
-Install Bro IDS
+Install Bro IDS in either cluster in a box or a multi node cluster set up.
 
 ## Requirements
 
 Doesn't require any other roles.
 
-This module will likely only work on RHEL/Centos 7 based hosts. We host our myri_snf rpm in a repository we run. I would suggest the same.
+This module will likely only work on RHEL/Centos 7 based hosts. We host our myri_snf rpm in a repository we run. I would reccomend the same.
 
 ## Role Variables
 
