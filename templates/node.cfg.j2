@@ -22,9 +22,15 @@ host={{ bro_manager.node_ip }}
 [{{ item.node_name }}-worker]
 type=worker
 host={{ item.node_ip }}
+{% if item.lb_method is defined %}
 lb_method={{ item.lb_method }}
+{% endif %}
+{% if item.lb_procs is defined %}
 lb_procs={{ item.lb_procs }}
+{% endif %}
+{% if item.pin_cpus is defined %}
 pin_cpus={{ item.pin_cpus }}
+{% endif %}
 interface={{ item.bro_interface }}
 {% if item.bro_env_vars is defined %}
 env_vars={{ item.bro_env_vars }}

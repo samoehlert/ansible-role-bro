@@ -15,6 +15,8 @@ Available variables are listed below, along with default values (see `defaults/m
 	bro_user: "bro"
 	bro_mailto_user: "bro@localhost"
 	bro_home: "/home/{{ bro_user }}"
+	bro_branch: 'v2.5.4'
+	bro_ethtool_iface: eth0
 	bro_build_path: "/usr/local/src/bro_{{ bro_branch }}"
 	bro_path: "/usr/local/bro"
 	bro_log_rotation: "3600"
@@ -28,12 +30,26 @@ Available variables are listed below, along with default values (see `defaults/m
 		- 192.168.0.0/16
 		- 172.16.0.0/12
 		- 10.0.0.0/8
-
+	bro_manager:
+		node_name: 'localhost'
+		node_ip: '10.0.0.1'
+		##### Optional (for use with myricom)
+		myricom_ring_size: '16384'
+	bro_worker:
+		- node_name: 'localhost'
+		  node_ip: '127.0.0.1'
+		  bro_interface: 'eth0'
+		  ##### Optional (we use with myricom)
+		  lb_method: 'custom'
+		  lb_procs: '14'
+		  pin_cpus: '2,3,4,5,6,7,8,9,10,11,12,13,14,15'
+		  bro_env_vars: 'SNF_FLAGS=0x1'
+	myricom: false
 	myricom_build_commands:
 		- ./configure --with-myricom=/opt/snf
 		- make -j
 		- make -j install
-	
+
 ## Dependencies
 
 None.
