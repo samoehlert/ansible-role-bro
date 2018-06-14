@@ -89,9 +89,60 @@ Example using defaults to get a cluster in a box setup
       roles:
         - samoehlert.bro
 
+Example using extra variables to set up a multinode cluster using myricom nic
+
+	- hosts: bro
+	  vars:
+		bro_user: "bro"
+		bro_home: "/home/{{ bro_user }}"
+		bro_branch: 'v2.5.4'
+		bro_ethtool_iface: eth0
+		bro_build_path: "/usr/local/src/bro_{{ bro_branch }}"
+		bro_path: "/usr/local/bro"
+		bro_build_commands:
+			- ./configure --prefix="{{ bro_path }}"
+			- make
+			- make -j install
+		bro_mailto_user: "bro@localhost"
+		bro_log_rotation: "3600"
+		bro_log_expire: "30"
+		bro_disk_space: "5"
+		bro_networks:
+			- 192.168.0.0/16
+			- 172.16.0.0/12
+			- 10.0.0.0/8
+		bro_manager:
+			node_name: 'bro1'
+			node_ip: '10.0.0.1'
+			myricom_ring_size: '16384'
+		bro_worker:
+			- node_name: 'bro2'
+			  node_ip: '10.0.0.2'
+			  bro_interface: 'eth0'
+			  lb_method: 'custom'
+			  lb_procs: '14'
+			  pin_cpus: '2,3,4,5,6,7,8,9,10,11,12,13,14,15'
+			  bro_env_vars: 'SNF_FLAGS=0x1'
+			- node_name: 'bro3'
+			  node_ip: '10.0.0.3'
+			  bro_interface: 'eth0'
+			  lb_method: 'custom'
+			  lb_procs: '14'
+			  pin_cpus: '2,3,4,5,6,7,8,9,10,11,12,13,14,15'
+			  bro_env_vars: 'SNF_FLAGS=0x1'
+		myricom: true
+      roles:
+        - samoehlert.bro
+
 ## License
 
-MIT / BSD
+ansible-role-bro, Copyright (c) 2014-2018, The Regents of the University of California, through Lawrence Berkeley National Laboratory (subject to receipt of any required approvals from the U.S. Dept. of Energy). All rights reserved.
+
+If you have questions about your rights to use or distribute this software, please contact Berkeley Lab's Technology Transfer Department at TTD@lbl.gov.
+
+NOTICE. This software is owned by the U.S. Department of Energy. As such, the U.S. Government has been granted for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in the Software to reproduce, prepare derivative works, and perform publicly and display publicly. Beginning five (5) years after the date permission to assert copyright is obtained from the U.S. Department of Energy, and subject to any subsequent five (5) year renewals, the U.S. Government is granted for itself and others acting on its behalf a paid-up, nonexclusive, irrevocable, worldwide license in the Software to reproduce, prepare derivative works, distribute copies to the public, perform publicly and display publicly, and to permit others to do so.
+
+This code is distributed under a BSD style license.
 
 ## Author Information
 
