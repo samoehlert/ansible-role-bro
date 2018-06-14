@@ -1,0 +1,5 @@
+---
+- name: restart bro
+  command: "{{ bro_path}}/bin/broctl deploy"
+  become: true
+  become_user: "{{ bro_user }}"

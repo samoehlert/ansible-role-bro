@@ -1,0 +1,36 @@
+## Global BroControl configuration file.
+
+# Recipient address for all emails send out by Bro and BroControl.
+MailTo = {{ bro_mailto_user }}
+
+# Location of other configuration files that can be used to customize
+# BroControl operation (e.g. local networks, nodes).
+CfgDir = {{ bro_path }}/etc
+
+# Location of the spool directory where files and data that are currently being
+# written are stored.
+SpoolDir = {{ bro_path }}/spool
+
+# Location of the log directory.  This is longer term storage for rotated logs.
+LogDir = {{ bro_path }}/logs
+
+# Rotation interval in seconds for log files on manager/standalone node.
+LogRotationInterval = {{ bro_log_rotation }}
+
+# Expiration interval for log files in LogDir. Files older than this many days
+# will be deleted upon running "broctl cron".
+# LogExpireInterval = {{ bro_log_expire }}
+
+# Lower threshold for space available on the disk that holds SpoolDir. If less
+# space is available, BroControl starts sending out warning emails.
+MinDiskSpace = {{ bro_disk_space }}
+
+# Logs debug information into spool/debug.log.
+# Debug = 1
+
+# bmwt 2014-04-11 disable hourly mails
+TraceSummary=
+
+{% if bro_manager.myricom_ring_size is defined %}
+myricom_ring_size={{ bro_manager.myricom_ring_size }}
+{% endif %}

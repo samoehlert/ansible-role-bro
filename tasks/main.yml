@@ -1,0 +1,264 @@
+---
+- name: Install Bro Dependencies
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - bind
+    - bison
+    - cmake
+    - flex
+    - gcc
+    - gcc-c++
+    - git
+    - libpcap
+    - make
+    - openssl
+    - python2-pip
+    - swig
+
+- name: Install optional dependencies
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - GeoIP-devel
+    - GeoIP
+    - sendmail
+    - curl
+    - gperftools
+
+- block:
+  - name: RHEL specific prereqs
+    package:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - libpcap-devel
+      - openssl-devel
+      - python-devel
+      - zlib-devel
+
+  - name: Install myri_snf if using myricom
+    package:
+      name: myri_snf
+      state: present
+    when: myricom
+
+ # - name: Add actor framework repo (libcaf)
+ #    copy:
+ #      src: libcaf.repo
+ #      dest: /etc/yum.repos.d/libcaf.repo
+ #    tags:
+ #      - caf
+
+ #  - name: Add libcaf gpg key file
+ #    copy:
+ #      src: libcaf-gpg-key
+ #      dest: /etc/pki/rpm-gpg/libcaf-gpg-key
+ #    tags:
+ #      - caf
+
+ #  - name: Accept libcaf gpg key
+ #    rpm_key:
+ #      state: present
+ #      key: /etc/pki/rpm-gpg/libcaf-gpg-key
+ #    tags:
+ #      - caf
+
+ #  - name: Install libcaf
+ #    package:
+ #      name: "{{ item }}"
+ #      state: present
+ #    with_items:
+ #      - caf
+ #      - caf-devel
+ #    tags:
+ #      - caf
+
+  - name: Create Bro user
+    user:
+      name: "{{ bro_user }}"
+      comment: "Bro User"
+      state: present
+      generate_ssh_key: true
+      ssh_key_file: .ssh/id_rsa
+
+  - name: Fetch Bro user's ssh key
+    fetch:
+      src: "/home/{{ bro_user }}/.ssh/id_rsa.pub"
+      dest: /tmp/id_rsa.pub
+      flat: yes
+    when: "'bro_manager' in group_names"
+
+  - name: Push out Bro user's key
+    authorized_key:
+      user: "{{ bro_user }}"
+      key: "{{ lookup('file', '/tmp/id_rsa.pub') }}"
+      state: present
+      exclusive: yes
+
+  - block:
+
+    - name: See if checkout exists
+      stat:
+        path: "{{ bro_build_path }}"
+      register: bro_download
+
+    - name: checkout bro source
+      git:
+        repo: https://github.com/bro/bro.git
+        version: "{{ bro_branch }}"
+        recursive: true
+        dest: "{{ bro_build_path }}"
+        accept_hostkey: true
+        force: true
+  #    when: not bro_download.stat.exists
+
+    - name: build and install bro
+      shell: "{{ item }}"
+      args:
+        chdir: "{{ bro_build_path }}"
+        creates: "{{ bro_path }}/bin"
+      register: bro_install
+      with_items: "{{ bro_build_commands }}"
+
+    - name: Add bro/bin to PATH
+      lineinfile:
+        dest: /home/bro/.bash_profile
+        regexp: "^PATH="
+        line: "PATH=$PATH:/usr/local/bro/bin:$HOME/.local/bin:$HOME/bin"
+
+    - name: Install bro-pkg
+      pip:
+        name: bro-pkg
+
+    - name: Autoconfigure bro-pkg the first time
+      command: bro-pkg autoconfig
+      args:
+        creates: "{{ bro_home }}/.bro-pkg/config"
+      become: yes
+      become_user: "{{ bro_user }}"
+      environment:
+        PATH: $PATH:/usr/local/bro/bin:$HOME/.local/bin:$HOME/bin
+
+    - name: Check permissions on bro directory
+      stat:
+        path: "{{ bro_path }}"
+      register: bro_dir
+
+    - name: Fix permissions on bro directory for bro user
+      file:
+        path: "{{ bro_path }}"
+        state: directory
+        mode: 0755
+        owner: "{{ bro_user }}"
+        group: "{{ bro_user }}"
+        recurse: yes
+        #when: ( bro_dir.stat.gr_name != "bro" or bro_dir.stat.pw_name != "bro" or bro_dir.stat.mode != 0755 )
+
+    - name: Add template for node.cfg
+      template:
+        src: node.cfg.j2
+        dest: "{{ bro_path }}/etc/node.cfg"
+        owner: "{{ bro_user }}"
+        group: "{{ bro_user }}"
+      notify: restart bro
+      tags:
+        - template
+
+    - name: Add template for broctl.cfg
+      template:
+        src: broctl.cfg.j2
+        dest: "{{ bro_path }}/etc/broctl.cfg"
+        owner: "{{ bro_user }}"
+        group: "{{ bro_user }}"
+      notify: restart bro
+      tags:
+        - template
+
+    - name: Add template for networks.cfg
+      template:
+        src: networks.cfg.j2
+        dest: "{{ bro_path }}/etc/networks.cfg"
+        owner: "{{ bro_user }}"
+        group: "{{ bro_user }}"
+      notify: restart bro
+      tags:
+        - template
+
+    - name: Add bro/bin to PATH
+      lineinfile:
+        dest: /home/bro/.bash_profile
+        regexp: "^PATH="
+        line: "PATH=$PATH:/usr/local/bro/bin:$HOME/.local/bin:$HOME/bin"
+
+    - name: Create link for site dir
+      file:
+        src: "{{ bro_path }}/share/bro/site"
+        dest: "{{ bro_path }}/site"
+        state: link
+
+    - name: Create cron job to clean up the logs after some time
+      cron:
+        name: "Clean local logs"
+        weekday: "*"
+        minute: "01"
+        hour: "01"
+        user: "root"
+        job: 'find /usr/local/bro/logs/ -type d -ctime +200 -name "2*" -exec rm -rf {} \;'
+        cron_file: bro_log_cleanup
+
+    when: "'bro_manager' in group_names"
+
+  - name: Check if permissions exist for {{ bro_user }} to capture packets
+    shell: "getcap {{ bro_path }}/bin/bro"
+    register: bro_cap_perms
+    when: bro_install.changed
+
+  - name: Set permissions for {{ bro_user }} to capture packets
+    shell: "setcap cap_net_raw,cap_net_admin=eip {{ bro_path }}/bin/bro"
+    when: (bro_install.changed) and (bro_cap_perms.stdout.find('/usr/local/bro/bin/bro = cap_net_admin,cap_net_raw+eip') != 0)
+
+  when: ansible_os_family == "RedHat"
+
+- rescue:
+  - debug:
+      msg: 'This module currently only supports CentOS and RHEL'
+
+- name: Check for users_ignore file
+  stat:
+    path: /etc/accounts/users_ignore
+  register: users_ignore
+
+- name: Add bro user to users_ignore
+  lineinfile:
+    dest: /etc/accounts/users_ignore
+    line: "bro"
+    state: present
+  when: users_ignore.stat.exists
+
+- name: Set ethtool options
+  blockinfile:
+    dest: /etc/rc.local
+    backup: yes
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      ethtool -C {{ bro_ethtool_iface }} rx-usecs 0
+      ethtool -C {{ bro_ethtool_iface }} rx-frames 1
+      ethtool -K {{ bro_ethtool_iface }} tso off
+      ethtool -K {{ bro_ethtool_iface }} gso off
+      ethtool -K {{ bro_ethtool_iface }} gro off
+      ethtool -K {{ bro_ethtool_iface }} lro off
+      ethtool -K {{ bro_ethtool_iface }} sg off
+      ethtool -K {{ bro_ethtool_iface }} tx off
+      ethtool -K {{ bro_ethtool_iface }} rx off
+  tags:
+    - ethtool
+
+- name: Transparent hugepages
+  shell: "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
+  tags:
+    - mm
+
+- meta: flush_handlers

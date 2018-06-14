@@ -1,0 +1,18 @@
+root_user: "root"
+bro_update: "false"
+bro_user: "bro"
+bro_home: "/home/{{ bro_user }}"
+bro_build_path: "/usr/local/src/bro_{{ bro_branch }}"
+bro_path: "/usr/local/bro"
+bro_dist: "/usr/local/src/bro"
+bro_log_rotation: "3600"
+bro_log_expire: "30"
+bro_disk_space: "5"
+myricom_build_commands:
+  - ./configure --with-myricom=/opt/snf
+  - make -j
+  - make -j install
+bro_build_commands:
+  - ./configure --prefix="{{ bro_path }}" --with-pcap=/opt/snf
+  - make
+  - make -j install

@@ -1,0 +1,49 @@
+{% if inventory_hostname in groups["bro_standalone"] %}
+[{{ bro_standalone.node_name }}]
+type=standalone
+host=localhost
+interface={{ bro_standalone.bro_interface }}
+{% elif inventory_hostname in groups["bro_manager"] or inventory_hostname in groups["bro_worker"] %}
+[{{ bro_manager.node_name }}-logger]
+type=logger
+host={{ bro_manager.node_ip }}
+{% endif %}
+
+[{{ bro_manager.node_name }}-proxy]
+type=proxy
+host={{ bro_manager.node_ip }}
+
+[{{ bro_manager.node_name }}-manager]
+type=manager
+host={{ bro_manager.node_ip }}
+
+{% if inventory_hostname in groups["bro_manager"] %}
+{% for item in bro_worker %}
+[{{ item.node_name }}-worker]
+type=worker
+host={{ item.node_ip }}
+lb_method={{ item.lb_method }}
+lb_procs={{ item.lb_procs }}
+pin_cpus={{ item.pin_cpus }}
+interface={{ item.bro_interface }}
+{% if item.bro_env_vars is defined %}
+env_vars={{ item.bro_env_vars }}
+{% endif %}
+
+{% endfor %}
+{% elif inventory_hostname in groups["bro_worker"] %}
+{% for item in bro_worker %}
+{% if item.node_name == inventory_hostname %}
+[{{ item.node_name }}-worker]
+type=worker
+host={{ item.node_ip }}
+lb_method={{ item.lb_method }}
+lb_procs={{ item.lb_procs }}
+pin_cpus={{ item.pin_cpus }}
+interface={{ item.bro_interface }}
+{% if item.bro_env_vars is defined %}
+env_vars={{ item.bro_env_vars }}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
