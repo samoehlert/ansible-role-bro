@@ -1,15 +1,30 @@
 bro_user: "bro"
+bro_mailto_user: "bro@localhost"
 bro_home: "/home/{{ bro_user }}"
+bro_branch: 'v.2.5.4'
+bro_ethtool_iface: eth0
 bro_build_path: "/usr/local/src/bro_{{ bro_branch }}"
 bro_path: "/usr/local/bro"
 bro_log_rotation: "3600"
 bro_log_expire: "30"
 bro_disk_space: "5"
+bro_networks:
+    - 192.168.0.0/16
+    - 172.16.0.0/12
+    - 10.0.0.0/8
+bro_manager:
+    node_name: 'localhost'
+    node_ip: '127.0.0.1'
+bro_worker:
+    - node_name: 'localhost'
+      node_ip: '127.0.0.1'
+      bro_interface: 'eth0'
+myricom: false
 myricom_build_commands:
   - ./configure --with-myricom=/opt/snf
   - make -j
   - make -j install
 bro_build_commands:
-  - ./configure --prefix="{{ bro_path }}" --with-pcap=/opt/snf
+  - ./configure --prefix="{{ bro_path }}"
   - make
   - make -j install
