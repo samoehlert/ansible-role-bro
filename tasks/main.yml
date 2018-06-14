@@ -45,37 +45,6 @@
       state: present
     when: myricom
 
- # - name: Add actor framework repo (libcaf)
- #    copy:
- #      src: libcaf.repo
- #      dest: /etc/yum.repos.d/libcaf.repo
- #    tags:
- #      - caf
-
- #  - name: Add libcaf gpg key file
- #    copy:
- #      src: libcaf-gpg-key
- #      dest: /etc/pki/rpm-gpg/libcaf-gpg-key
- #    tags:
- #      - caf
-
- #  - name: Accept libcaf gpg key
- #    rpm_key:
- #      state: present
- #      key: /etc/pki/rpm-gpg/libcaf-gpg-key
- #    tags:
- #      - caf
-
- #  - name: Install libcaf
- #    package:
- #      name: "{{ item }}"
- #      state: present
- #    with_items:
- #      - caf
- #      - caf-devel
- #    tags:
- #      - caf
-
   - name: Create Bro user
     user:
       name: "{{ bro_user }}"
